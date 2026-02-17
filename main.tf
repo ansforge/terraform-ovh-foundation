@@ -33,7 +33,7 @@ provider "ovh" {
 
 # --- MODIFICATION ICI : La source pointe vers le dossier local ---
 module "instances" {
-  source       = "./modules/compute" # Chemin local adapté pour la racine du repo
+  source       = "git::https://github.com/ansforge/terraform-ovh-foundation.git//modules/compute?ref=amont"
 
   vms            = var.vms
   region         = var.region
