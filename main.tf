@@ -1,4 +1,4 @@
-# --- terraform-ovh-foundation/main.tf ---
+# --- terraform-ovh-foundation/main.tf (Racine) ---
 
 terraform {
   required_providers {
@@ -17,7 +17,6 @@ terraform {
   }
 }
 
-# Providers (identiques à avant)
 provider "openstack" {
   auth_url                        = var.os_auth_url
   application_credential_id       = var.os_user
@@ -34,11 +33,13 @@ provider "ovh" {
 
 # --- MODIFICATION ICI : La source pointe vers le dossier local ---
 module "instances" {
-  source         = "./modules/compute"
+  source       = "./modules/compute" # Chemin local adapté pour la racine du repo
+
   vms            = var.vms
   region         = var.region
   ovh_project_id = var.ovh_project_id
 }
+# -----------------------------------------------------------------
 
 output "private_keys" {
   value     = module.instances.private_keys
