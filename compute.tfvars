@@ -58,14 +58,15 @@ vms = {
     tags          = { Owner = "infra-team", Env = "amont", App = "rebond", Lot = "01" }
   }
 
-  dns = {
-    name          = "infra-amont-dns01"
-    flavor_id     = "fd6bdb12-606e-4dea-a0b7-c4baf07f5e19"
-    image_id      = "61a6cfe8-6f70-4a55-9929-f95a7d02c26b"
-    key_name      = "vm-dns-key"
-    public_ip     = true
-    extra_disk_gb = 0
-    networks      = [{ name = "amont-outillage-lan", ip = null, enabled = true }]
-    tags          = { Owner = "infra-team", Env = "amont", App = "dns", Lot = "01" }
-  }
-}
+   dns = {
+     name          = "infra-amont-dns01"
+     flavor_id     = "fd6bdb12-606e-4dea-a0b7-c4baf07f5e19"
+     image_id      = "5bcb6f1f-22a9-4bbe-9693-254c4572048f"
+     key_name      = "vm-dns-key"
+     public_ip     = true
+     extra_disk_gb = 0
+     networks      = [{ name = "amont-outillage-lan", ip = null, enabled = true }]
+     tags          = { Owner = "infra-team", Env = "amont", App = "dns", Lot = "01" }
+     skip_key_creation = true
+   }
+ }
