@@ -2,8 +2,10 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.terraform.io/hashicorp/tls" {
-  version = "4.2.1"
+  version     = "4.2.1"
+  constraints = ">= 4.2.0"
   hashes = [
+    "h1:4RrYf1s+LL8tozFP2uqJDAakrVqJF4sqZTM5EPQ+Nhg=",
     "h1:F5d6bQY8UlBo0D71Sv7CsV+3aZOFz0yeNF+vufog7h4=",
     "zh:0d1e7d07ac973b97fa228f46596c800de830820506ee145626f079dd6bbf8d8a",
     "zh:5c7e3d4348cb4861ab812973ef493814a4b224bdd3e9d534a7c8a7c992382b86",
@@ -21,9 +23,11 @@ provider "registry.terraform.io/hashicorp/tls" {
 }
 
 provider "registry.terraform.io/ovh/ovh" {
-  version = "2.11.0"
+  version     = "2.11.0"
+  constraints = ">= 0.35.0"
   hashes = [
     "h1:XlPqU8iVvTM+TR0cgkTh93PBDeWayoBo709kewzP9II=",
+    "h1:icMhgTTMXnfTj/ijGhVOKBfuXAI63g09989ZcGCleKs=",
     "zh:1991e3d0c663e1b6a5a886f0a97cf71e9275f39e60e73e5d83bd83d945c9feee",
     "zh:1d2ed8d9ed0205677151179a8d385a9e5df656fa70b29efdc5b776eb5d6b6c9c",
     "zh:25d8fa3c70e27cac11ac69f321ebc303ed5fa7febf833736f8a96279b14644ab",
@@ -42,9 +46,11 @@ provider "registry.terraform.io/ovh/ovh" {
 }
 
 provider "registry.terraform.io/terraform-provider-openstack/openstack" {
-  version = "3.4.0"
+  version     = "3.4.0"
+  constraints = ">= 3.4.0"
   hashes = [
     "h1:MVSoVvhjbu7s1pfYfsiYED8A++XfAoyOlSX1x9PW68E=",
+    "h1:n1yIddr5lsLoYBhlfUmCwIYiCsynDkLvzAE98Tceo/A=",
     "zh:11b3c88e24197a29b13cf5ab41771944bd16707b561645323e8cbb4f1da00b7b",
     "zh:1c3e89cf19118fc07d7b04257251fc9897e722c16e0a0df7b07fcd261f8c12e7",
     "zh:2dc60dbbbb822fbb1e7b17e3b89e3e6a7a8fe54a716d4477d2fa40f836c4de0f",
