@@ -1,38 +1,31 @@
-# --- terraform-ovh-foundation/main.tf ---
-
 terraform {
   required_providers {
-    openstack = {
-      source  = "terraform-provider-openstack/openstack"
-      version = ">= 3.4.0"
-    }
-    ovh = {
-      source  = "ovh/ovh"
-      version = ">= 0.35.0"
-    }
-    tls = {
-      source  = "hashicorp/tls"
-      version = ">= 4.2.0"
-    }
+    openstack = { source = "terraform-provider-openstack/openstack", version = ">= 1.53.0" }
+    ovh       = { source = "ovh/ovh", version = ">= 0.40.0" }
+    vault     = { source = "hashicorp/vault", version = ">= 3.25.0" }
   }
 }
 
-provider "openstack" {
-  auth_url                     = var.os_auth_url
-  application_credential_id    = var.os_user
-  application_credential_secret = var.os_password
-  region                       = var.region
+provider "vault" { skip_child_token = true }
+
+ephemeral "vault_kv_secret_v2" "os" {
+  mount = "iacrunner-prod"
+  name  = "openstack_key"
 }
 
-provider "ovh" {
-  endpoint           = var.ovh_endpoint
-  application_key    = var.ovh_application_key
-  application_secret = var.ovh_application_secret
-  consumer_key       = var.ovh_consumer_key
+locals {
+  os_creds = ephemeral.vault_kv_secret_v2.os.data
+}
+
+provider "openstack" {
+  auth_url                      = local.os_creds["OS_AUTH_URL"]
+  application_credential_id     = local.os_creds["OS_APPLICATION_CREDENTIAL_ID"]
+  application_credential_secret = local.os_creds["OS_APPLICATION_CREDENTIAL_SECRET"]
+  region                        = var.region
 }
 
 module "instances" {
-  source         = "git::https://github.com/ansforge/terraform-ovh-foundation.git//modules/compute?ref=amont"
+  source         = "./modules/compute"
   vms            = var.vms
   region         = var.region
   ovh_project_id = var.ovh_project_id
@@ -42,6 +35,3 @@ output "private_keys" {
   value     = module.instances.private_keys
   sensitive = true
 }
-
-
-
