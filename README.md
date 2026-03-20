@@ -38,9 +38,7 @@ Pour chaque VM :
 
 Récupération des clés privées :
 
-\`\`\`bash
 terraform output -raw private_keys
-\`\`\`
 
 ---
 
