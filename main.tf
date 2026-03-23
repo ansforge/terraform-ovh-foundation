@@ -31,7 +31,3 @@ module "instances" {
   ovh_project_id = var.ovh_project_id
 }
 
-output "private_keys" {
-  value     = module.instances.private_keys
-  sensitive = true
-}
