@@ -1,92 +1,292 @@
-# 🏗️ Infrastructure OVHcloud - Compute (Production)
+Infrastructure OVHcloud - Compute / Foundation (Production)
 
-Ce dépôt Terraform gère la couche compute de l’infrastructure de production sur OVHcloud/OpenStack.  
-Il permet de déployer et configurer les machines virtuelles (VMs) de la Landing Zone, avec leurs interfaces réseau, volumes additionnels et clés SSH.
+Ce dépôt Terraform gère la couche compute de l’infrastructure OVHcloud :
+- déploiement des machines virtuelles (VMs)
+- gestion des interfaces réseau (multi-NIC)
+- génération automatique des clés SSH
+- attachement de volumes supplémentaires
+- intégration complète avec la couche réseau existante
 
----
+🏗️ Structure du Projet
 
-# 🏗️ Architecture Compute
+modules/compute/ : Module principal gérant :
+- création des VMs OpenStack
+- génération des clés SSH (TLS)
+- création des keypairs
+- création des ports réseau
+- attachement multi-réseaux
+- gestion des volumes additionnels
 
-Le projet déploie plusieurs types de VMs avec des rôles distincts :
+backend.tf : Configuration du backend distant (S3 OVH Object Storage).
 
-| VM        | Nom sur OpenStack         | Rôle                               | Disque additionnel | Réseau(x) principal(aux) |
-|-----------|---------------------------|------------------------------------|--------------------|--------------------------|
-| tfansible | infra-prod-tfansible01    | Gestion / Automation (Ansible)      | 0 GB               | prod-production-infra-app-10.11.90.0/24 |
-| proxy     | infra-prod-proxy01        | Proxy Squid (DMZ + App)            | 50 GB              | prod-production-dmz-exposed-10.11.30.0/24, prod-production-infra-app-10.11.90.0/24 |
-| repo      | infra-prod-repo01         | Repository interne                 | 150 GB             | prod-production-infra-app-10.11.90.0/24 |
-| freeipa   | infra-prod-freeipa01      | Active Directory / Identity        | 0 GB               | prod-production-infra-app-10.11.90.0/24 |
+main.tf : Point d’entrée Terraform appelant le module compute.
 
-Chaque VM reçoit automatiquement :
-- Ses ports réseau avec IPs fixes
-- Ses tags de métadonnées
+variables.tf : Déclaration des variables globales.
 
----
-
-# 🛠️ Composants Techniques
-
-- **Provider OVH** : configuration des projets Public Cloud si nécessaire  
-- **Provider OpenStack** : création des VMs, keypairs SSH, ports réseau et volumes  
-- **Provider TLS** : génération locale des clés SSH  
+compute.tfvars : Définition des machines virtuelles (infra, proxy, repo, etc.).
 
 ---
 
-# 🔑 Gestion des clés SSH
+🔐 Intégration Vault
 
-Pour chaque VM :
-- Une clé SSH est générée via le provider `tls`
-- Elle est injectée dans OpenStack comme keypair
+Les credentials OpenStack sont récupérés dynamiquement via Vault :
 
-Récupération des clés privées :
+iacrunner-prod/openstack_key :
+- OS_AUTH_URL
+- OS_APPLICATION_CREDENTIAL_ID
+- OS_APPLICATION_CREDENTIAL_SECRET
 
-terraform output -raw private_keys
-
----
-
-# 💾 Volumes additionnels
-
-Les VMs disposant d’un disque supplémentaire sont automatiquement attachées via :
-
-- \`openstack_compute_volume_attach_v2\`
+👉 Utilisation de secrets éphémères :
+- aucun secret stocké dans Terraform
+- aucune exposition dans le state
+- sécurité maximale
 
 ---
 
-# 🔐 Gestion des Secrets (Vault)
+🖥️ Architecture Compute
 
-Le projet utilise des données éphémères Vault pour éviter de stocker les identifiants dans le state :
+Déploiement des composants de la landing zone :
 
-- \`iacrunner-prod/openstack_key\` : Credentials OpenStack (ID / Secret)
+- tfansible → serveur Ansible / automation
+- proxy → proxy (ex: Squid) en DMZ
+- repo → repository interne (packages)
+- freeipa → gestion des identités (IAM interne)
 
----
+Caractéristiques :
 
-# 🚀 Déploiement
-
-## Pré-requis
-
-- Terraform >= 1.5
-- Accès OpenStack via Application Credential
-- Backend S3 configuré pour le state
-- Vault configuré pour récupérer les secrets OpenStack
-
----
-
-## Exemple d’exécution
-
-### Initialiser Terraform
-
-terraform init -backend-config=backend.tf
-
-### Appliquer la configuration
-
-terraform apply -var-file=compute.tfvars
+- IPs statiques sur réseaux privés
+- multi-interface réseau
+- segmentation complète (DMZ / INFRA / APP)
+- attachement disque optionnel
 
 ---
 
-# 📤 Outputs Terraform
+🌐 Intégration Réseau
 
-| Output              | Description |
-|--------------------|------------|
-| private_keys       | Clés privées SSH des VMs (sensible) |
-| instance_ids       | IDs OpenStack des instances |
-| keypair_names      | Noms des keypairs créés |
-| vm_network_details | Détails des ports et IPs des VMs |
+Les VMs sont connectées aux réseaux créés dans :
 
+👉 terraform-ovh-network
+
+Types de réseaux utilisés :
+
+- Ext-Net → accès public OVH
+- infra_app → réseau interne infra
+- dmz_admin / dmz_transit / dmz_exposed → zones DMZ
+
+👉 Chaque VM peut avoir :
+- 1 interface principale (boot)
+- N interfaces secondaires (attachées dynamiquement)
+
+---
+
+⚙️ Fonctionnement technique
+
+1. Génération des clés SSH
+
+resource : tls_private_key
+
+- 1 clé par VM
+- RSA 4096 bits
+- persistée dans le state (sensible)
+
+---
+
+2. Création KeyPair OpenStack
+
+resource : openstack_compute_keypair_v2
+
+- clé publique injectée
+- utilisée pour accès SSH
+
+---
+
+3. Résolution des réseaux
+
+data : openstack_networking_network_v2
+
+- récupération des réseaux par NOM
+- mutualisation pour toutes les VMs
+
+---
+
+4. Création des subnets
+
+data : openstack_networking_subnet_v2
+
+- utilisé pour assignation IP statique
+
+---
+
+5. Création des ports réseau
+
+resource : openstack_networking_port_v2
+
+- 1 port par interface
+- IP statique si définie
+- port_security désactivé
+
+Spécificité :
+- Ext-Net → pas d’IP fixée
+- réseaux privés → IP obligatoire
+
+---
+
+6. Déploiement des VMs
+
+resource : openstack_compute_instance_v2
+
+- attachement via port principal
+- metadata injectée (tags)
+- lifecycle sécurisé (prevent_destroy)
+
+---
+
+7. Attachement multi-interface
+
+resource : openstack_compute_interface_attach_v2
+
+- attache les interfaces secondaires
+- dynamique selon config
+
+---
+
+8. Gestion des volumes
+
+resource : openstack_blockstorage_volume_v3
+
+- disque supplémentaire optionnel
+- attaché automatiquement à la VM
+
+---
+
+🪣 Backend Terraform
+
+- Bucket : infra-prod-sto-object-tf01
+- Région : RBX
+- Endpoint : https://s3.rbx.io.cloud.ovh.net/
+
+👉 Permet :
+- centralisation du state
+- cohérence infra globale
+- collaboration
+
+---
+
+🚀 Utilisation
+
+Pré-requis
+
+1. Vault accessible :
+
+export VAULT_ADDR=https://vault.xxx
+
+2. Secret requis :
+
+- iacrunner-prod/openstack_key
+
+3. Réseau déjà déployé :
+👉 dépend de terraform-ovh-network
+
+---
+
+Déploiement
+
+terraform init  
+terraform plan -var-file="compute.tfvars"  
+terraform apply -var-file="compute.tfvars"
+
+---
+
+🔧 Variables
+
+compute.tfvars :
+
+region         = "RBX-A"
+ovh_project_id = "2b264defd5244f52b8edbd6c9239a325"
+
+vms = {
+  tfansible = {
+    name      = "infra-prod-tfansible01"
+    flavor_id = "xxx"
+    image_id  = "xxx"
+    networks  = [...]
+  }
+}
+
+👉 Chaque VM définit :
+
+- nom
+- flavor (CPU / RAM)
+- image
+- clé SSH
+- réseaux + IP
+- disque additionnel (optionnel)
+- tags
+
+---
+
+📤 Outputs Terraform
+
+instance_ids :
+- IDs OpenStack des VMs
+
+instance_ips :
+- IPs associées à chaque interface
+
+👉 Utilisable pour :
+- Ansible
+- inventaire dynamique
+- monitoring
+- bastion / accès
+
+---
+
+🛡️ Sécurité
+
+- clés SSH générées automatiquement
+- aucun mot de passe
+- secrets via Vault uniquement
+- ports réseau isolés
+- prevent_destroy activé (anti-erreur humaine)
+
+---
+
+⚠️ Points d’attention
+
+- les réseaux doivent exister (terraform-ovh-network)
+- IPs doivent être disponibles
+- Ext-Net ne supporte pas IP fixe via Terraform
+- ne pas supprimer les ports (lifecycle)
+- cohérence entre interfaces et firewall
+
+---
+
+🧪 Vérifications post-déploiement
+
+Lister VMs :
+openstack server list
+
+Lister ports :
+openstack port list
+
+Lister volumes :
+openstack volume list
+
+Tester accès :
+ssh -i <key> user@<ip>
+
+---
+
+🔄 Améliorations possibles
+
+- cloud-init automatisé
+- intégration Ansible automatique
+- autoscaling (si besoin)
+- monitoring (Prometheus / Grafana)
+- gestion des backups volumes
+
+---
+
+👨‍💻 Auteur
+
+Infrastructure Terraform OVHcloud – Layer compute (VMs + réseau + stockage) industrialisé pour production.

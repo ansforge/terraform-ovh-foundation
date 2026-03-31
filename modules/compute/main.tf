@@ -48,7 +48,7 @@ resource "openstack_networking_port_v2" "vm_ports" {
           ip       = net.ip
         }
       ]
-    ]) : "${pair.vm_key}_${pair.net_name}" => pair
+    ]) : "${pair.vm_key}_${pair.net_name}" => pair if pair.net_name != "Ext-Net"
   }
 
   name                  = "port-${each.value.vm_key}-${each.value.net_name}"
@@ -57,7 +57,7 @@ resource "openstack_networking_port_v2" "vm_ports" {
   port_security_enabled = false
 
   dynamic "fixed_ip" {
-    for_each = each.value.net_name != "Ext-Net" && each.value.ip != "" ? [1] : []
+    for_each = each.value.ip != "" ? [1] : []
     content {
       ip_address = each.value.ip
       subnet_id  = data.openstack_networking_subnet_v2.subnets[each.value.net_name].id
@@ -80,8 +80,12 @@ resource "openstack_compute_instance_v2" "vm" {
 
   metadata = each.value.tags
 
-  network {
-    port = openstack_networking_port_v2.vm_ports["${each.key}_${each.value.networks[0].name}"].id
+  dynamic "network" {
+    for_each = each.value.networks
+    content {
+      name = network.value.name == "Ext-Net" ? "Ext-Net" : null
+      port = network.value.name != "Ext-Net" ? openstack_networking_port_v2.vm_ports["${each.key}_${network.value.name}"].id : null
+    }
   }
 
   lifecycle {
@@ -115,27 +119,6 @@ resource "openstack_compute_volume_attach_v2" "attach_extra" {
 
   instance_id = openstack_compute_instance_v2.vm[each.key].id
   volume_id   = each.value.id
-
-  lifecycle {
-    ignore_changes = all
-  }
-}
-
-resource "openstack_compute_interface_attach_v2" "ai" {
-  for_each = {
-    for pair in flatten([
-      for vm_key, vm_val in var.vms : [
-        for i, net in vm_val.networks : {
-          vm_key = vm_key
-          name   = net.name
-          index  = i
-        }
-      ]
-    ]) : "${pair.vm_key}_${pair.name}" => pair if pair.index > 0
-  }
-
-  instance_id = openstack_compute_instance_v2.vm[each.value.vm_key].id
-  port_id     = openstack_networking_port_v2.vm_ports["${each.value.vm_key}_${each.value.name}"].id
 
   lifecycle {
     ignore_changes = all
