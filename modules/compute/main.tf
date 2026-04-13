@@ -65,7 +65,7 @@ resource "openstack_networking_port_v2" "vm_ports" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = all
   }
 }
@@ -85,7 +85,7 @@ resource "openstack_compute_instance_v2" "vm" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes = [
       user_data,
       network,
@@ -105,7 +105,7 @@ resource "openstack_blockstorage_volume_v3" "extra_disk" {
   size = each.value.extra_disk_gb
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = all
   }
 }

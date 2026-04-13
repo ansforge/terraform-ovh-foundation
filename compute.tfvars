@@ -22,10 +22,8 @@ vms = {
     key_name      = "vm-proxy-key"
     extra_disk_gb = 50
     networks = [
-      { name = "prod-production-dmz-admin-10.11.52.0-24", ip = "10.11.52.11", enabled = true },
-      { name = "prod-production-dmz-transit-10.11.70.0-24", ip = "10.11.70.11", enabled = true },
       { name = "prod-production-dmz-exposed-10.11.30.0-24", ip = "10.11.30.11", enabled = true },
-
+      { name = "prod-production-dmz-transit-10.11.70.0-24", ip = "10.11.70.11", enabled = true },
     ]
     tags = { Owner = "infra-team", Env = "prod", App = "squid" }
   }
