@@ -12,3 +12,9 @@ output "instance_ips" {
   }
 }
 
+
+
+output "private_keys" {
+  value     = { for k, v in tls_private_key.vm_key : k => v.private_key_pem }
+  sensitive = true
+}

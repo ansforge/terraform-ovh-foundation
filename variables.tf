@@ -1,6 +1,6 @@
 variable "region" {
   type        = string
-  description = "Région OVH Public Cloud (ex: RBX-A)"
+  description = "Région OVH Public Cloud (ex: EU-WEST-PAR)"
 }
 
 variable "ovh_project_id" {
@@ -18,7 +18,7 @@ variable "vms" {
     extra_disk_gb = optional(number, 0)
     networks      = list(object({
       name    = string
-      ip      = string # IP fixe obligatoire dans le range .10 à .50
+      ip      = string
       enabled = bool
     }))
     tags = map(string)

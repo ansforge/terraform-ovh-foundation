@@ -9,7 +9,7 @@ terraform {
 provider "vault" { skip_child_token = true }
 
 ephemeral "vault_kv_secret_v2" "os" {
-  mount = "iacrunner-amont"
+  mount = "iacrunner-outils"
   name  = "openstack_key"
 }
 
@@ -30,4 +30,3 @@ module "instances" {
   region         = var.region
   ovh_project_id = var.ovh_project_id
 }
-
