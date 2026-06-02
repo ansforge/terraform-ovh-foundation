@@ -22,9 +22,9 @@ proxy = {
   key_name      = "vm-proxy-key"
   extra_disk_gb = 50
   networks = [
-    { name = "preprod-amont-dmz-admin-10.12.52.0-24", ip = "10.12.52.11", enabled = true },
-    { name = "preprod-amont-dmz-transit-10.12.70.0-24", ip = "10.12.70.11", enabled = true },
     { name = "preprod-amont-dmz-exposed-10.12.30.0-24", ip = "10.12.30.11", enabled = true },
+    { name = "preprod-amont-dmz-transit-10.12.70.0-24", ip = "10.12.70.11", enabled = true },
+    { name = "preprod-amont-dmz-admin-10.12.52.0-24", ip = "10.12.52.11", enabled = true },
   ]
   tags          = { Owner = "infra-team", Env = "amont", App = "proxy" }
 

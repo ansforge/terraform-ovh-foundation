@@ -39,6 +39,7 @@ data "openstack_networking_subnet_v2" "subnets" {
 }
 
 resource "openstack_networking_port_v2" "vm_ports" {
+  # On ne crée PAS de port pour Ext-Net (OVH bloque souvent create_port:port_security_enabled)
   for_each = {
     for pair in flatten([
       for vm_key, vm_val in var.vms : [
@@ -65,7 +66,7 @@ resource "openstack_networking_port_v2" "vm_ports" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = all
   }
 }
@@ -80,16 +81,16 @@ resource "openstack_compute_instance_v2" "vm" {
 
   metadata = each.value.tags
 
-  dynamic "network" {
-    for_each = each.value.networks
-    content {
-      name = network.value.name == "Ext-Net" ? "Ext-Net" : null
-      port = network.value.name != "Ext-Net" ? openstack_networking_port_v2.vm_ports["${each.key}_${network.value.name}"].id : null
-    }
+  # NIC primaire uniquement = networks[0]
+  # - si Ext-Net => attachement "name"
+  # - sinon => attachement via port Neutron géré par Terraform
+  network {
+    name = each.value.networks[0].name == "Ext-Net" ? "Ext-Net" : null
+    port = each.value.networks[0].name != "Ext-Net" ? openstack_networking_port_v2.vm_ports["${each.key}_${each.value.networks[0].name}"].id : null
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes = [
       user_data,
       network,
@@ -109,7 +110,7 @@ resource "openstack_blockstorage_volume_v3" "extra_disk" {
   size = each.value.extra_disk_gb
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = all
   }
 }
@@ -119,6 +120,29 @@ resource "openstack_compute_volume_attach_v2" "attach_extra" {
 
   instance_id = openstack_compute_instance_v2.vm[each.key].id
   volume_id   = each.value.id
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# Attache dynamiquement les NIC secondaires (index > 0) sans recréer la VM.
+# On exclut Ext-Net ici aussi (au cas où quelqu'un le mettrait en NIC secondaire).
+resource "openstack_compute_interface_attach_v2" "ai" {
+  for_each = {
+    for pair in flatten([
+      for vm_key, vm_val in var.vms : [
+        for i, net in vm_val.networks : {
+          vm_key = vm_key
+          name   = net.name
+          index  = i
+        }
+      ]
+    ]) : "${pair.vm_key}_${pair.name}" => pair if pair.index > 0 && pair.name != "Ext-Net"
+  }
+
+  instance_id = openstack_compute_instance_v2.vm[each.value.vm_key].id
+  port_id     = openstack_networking_port_v2.vm_ports["${each.value.vm_key}_${each.value.name}"].id
 
   lifecycle {
     ignore_changes = all
